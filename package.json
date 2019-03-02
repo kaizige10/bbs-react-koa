@@ -1,0 +1,19 @@
+{
+  "name": "bbs-koa",
+  "version": "1.0.0",
+  "description": "a collection of simple demos of Koa",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Koa",
+    "Node"
+  ],
+  "author": "Ruan Yifeng",
+  "license": "ISC",
+  "dependencies": {
+    "koa": "^2.7.0",
+    "koa-body": "^4.0.8",
+    "koa-router": "^7.4.0"
+  }
+}
