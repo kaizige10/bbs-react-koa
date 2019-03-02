@@ -8,7 +8,7 @@ let {comments} = require('./db/comments');
 const app = new Koa();
 const router = new Router();
 const common = (ctx, next) => {
-    // console.log('ctx.request.body: ', ctx.request.body);
+    console.log('ctx.request.body: ', ctx.request.body);
     ctx.response.type = 'json';
     next();
 }
@@ -21,8 +21,10 @@ router.post('/user/login', (ctx, next) => {
             return element.name === body.name && element.password === body.password;
         });
         if (result) {
+            console.log('登录成功！');
             ctx.response.body = {code: 0, result: 'login success'};
         } else {
+            console.log('登录失败！');
             ctx.response.body = {code: 1, result: "username or password error"};
         }
     }
@@ -33,8 +35,10 @@ router.post('/user/login', (ctx, next) => {
 // 获取帖子列表
 router.get('/post', (ctx, next) => {
     if (posts.length > 0) {
+        console.log('获取帖子列表成功：', JSON.stringify(posts));
         ctx.response.body = {code: 0, result: posts};
     } else {
+        console.log('获取帖子列表：', 'no posts yet');
         ctx.response.body = {code: 1, result: 'no posts yet'};
     }
     next();
@@ -44,9 +48,10 @@ router.get('/post/:postId', (ctx, next) => {
     const postId = ctx.params.postId;
     const post = findPostById(postId, posts);
     if (post) {
-        // console.log(`查询postId:${postId}对应的post为：${JSON.stringify(post)}`);
+        console.log(`查询postId:${postId}对应的post为：${JSON.stringify(post)}`);
         ctx.response.body = {code: 0, result: post};
     } else {
+        console.log(`查询postId:${postId}失败，未找到`);
         ctx.response.body = {code: 1, result: 'not found'};
     }
     next();
@@ -64,7 +69,7 @@ router.post('/post', (ctx, next) => {
         updatedAt: new Date().getTime(),
         content: body.content || '我要说什么？'
     };
-    // console.log(`新增的post为：${JSON.stringify(post)}`);
+    console.log(`新增的post为：${JSON.stringify(post)}`);
     posts.push(post);
     ctx.response.body = {code: 0, result: post};
     next();
@@ -80,10 +85,11 @@ router.put('/post/:postId', (ctx, next) => {
         post.updatedAt = new Date().getTime();
         post.vote = Number(body.vote) || post.vote,
         post.content = body.content || post.content;
-        // console.log(`修改的post为：${JSON.stringify(post)}`);
+        console.log(`修改的post为：${JSON.stringify(post)}`);
         ctx.response.body = {code: 0, result: post};
     } else {
-        ctx.response.body = {code: 1, result: 'not found your post!'};
+        console.log(`查询postId:${postId}失败，未找到`);
+        ctx.response.body = {code: 1, result: 'not found your post! postId= ' + postId};
     }
     next();
 })
@@ -93,10 +99,11 @@ router.del('/post/:postId', (ctx, next) => {
     const post = findPostById(postId, posts);
     if (post) {
         posts = posts.filter(item => item.id !== Number(postId));
-        // console.log(`删除的post为：${JSON.stringify(post)}`);
-        // console.log(`剩下的post为${JSON.stringify(posts)}`);
+        console.log(`删除的post为：${JSON.stringify(post)}`);
+        console.log(`剩下的post为${JSON.stringify(posts)}`);
         ctx.response.body = {code: 0, result: post};
     } else {
+        console.log(`查询postId:${postId}失败，未找到`);
         ctx.response.body = {code: 1, result: 'not found your post!'};
     }
     next();
@@ -104,10 +111,9 @@ router.del('/post/:postId', (ctx, next) => {
 // 查询评论列表
 router.get('/comment/:postId', (ctx, next) => {
     const postId = ctx.params.postId;
-    // console.log(postId);
     const results = findCommentsById(postId, comments);
-    // console.log(JSON.stringify(results));
     if (results.length > 0) {
+        console.log(`查询postId:${postId}的comments：${JSON.stringify(results)}`);
         ctx.response.body = {code: 0, result: results};
     } else {
         ctx.response.body = {code: 1, result: 'no comments yet'};
@@ -120,6 +126,7 @@ router.post('/comment', (ctx, next) => {
     const body = ctx.request.body;
     const post = findPostById(body.postId, posts);
     if (!post) {
+        console.log(`查询postId:${body.postId}失败，未找到`);
         ctx.response.body = {code: 0, result: `not found post! postId = ${body.postId}`};
         next();
         return;
@@ -145,7 +152,7 @@ app.on('error', (err, ctx) => {
 })
 app.use(koaBody()).use(common).use(router.routes()).use(router.allowedMethods);
 
-app.listen(3000);
+app.listen(4000);
 
 function findPostById(postId, posts) {
     const filterResults = posts.filter(item => item.id === Number(postId));
