@@ -146,7 +146,8 @@ router.post('/comment', (ctx, next) => {
 
 // 错误处理
 app.on('error', (err, ctx) => {
-    console.error('server error:', err);
+    console.error('server error:');
+    console.error(err);
     ctx.response.status = err.statusCode || err.status || 500;
     ctx.response.body = err.message;
 })
