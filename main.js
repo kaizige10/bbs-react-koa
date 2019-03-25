@@ -7,7 +7,12 @@ let {comments} = require('./db/comments');
 
 const app = new Koa();
 const router = new Router();
+const defaulAuthor = {
+    id: users[0].id,
+    name: users[0].name
+}
 const common = (ctx, next) => {
+    console.log('ctx.request.url: ', ctx.request.url);
     console.log('ctx.request.body: ', ctx.request.body);
     ctx.response.type = 'json';
     next();
@@ -17,12 +22,13 @@ router.post('/user/login', (ctx, next) => {
     const body = ctx.request.body;
     // console.log(body);
     if (body.name) {
-        const result = (users || []).some(element => {
-            return element.name === body.name && element.password === body.password;
+        const result = (users || []).filter(element => {
+            return element.name == body.name && element.password == body.password;
         });
-        if (result) {
+        // console.log(result);
+        if (result.length > 0) {
             console.log('登录成功！');
-            ctx.response.body = {code: 0, result: 'login success'};
+            ctx.response.body = {code: 0, result: result[0]};
         } else {
             console.log('登录失败！');
             ctx.response.body = {code: 1, result: "username or password error"};
@@ -34,9 +40,10 @@ router.post('/user/login', (ctx, next) => {
 // post帖子模块
 // 获取帖子列表
 router.get('/post', (ctx, next) => {
-    if (posts.length > 0) {
-        console.log('获取帖子列表成功：', JSON.stringify(posts));
-        ctx.response.body = {code: 0, result: posts};
+    var allPosts = getAllPosts(posts);
+    if (allPosts.length > 0) {
+        console.log('获取帖子列表成功：', JSON.stringify(allPosts));
+        ctx.response.body = {code: 0, result: allPosts};
     } else {
         console.log('获取帖子列表：', 'no posts yet');
         ctx.response.body = {code: 1, result: 'no posts yet'};
@@ -62,9 +69,8 @@ router.post('/post', (ctx, next) => {
     const body = ctx.request.body;
     const post = {
         id: lastId + 1,
-        userId: 0,// TODO以后做用户登录后的id，暂时先不搞
+        userId: body.userId || defaulAuthor.id,
         title: body.title || '我是title',
-        author: body.author || '我是谁?',
         vote: 0,
         updatedAt: new Date().getTime(),
         content: body.content || '我要说什么？'
@@ -81,7 +87,7 @@ router.put('/post/:postId', (ctx, next) => {
     if (post) {
         const body = ctx.request.body;
         post.title = body.title || post.title;
-        post.author = body.author || post.author;
+        post.userId = body.userId || post.userId,
         post.updatedAt = new Date().getTime();
         post.vote = Number(body.vote) || post.vote,
         post.content = body.content || post.content;
@@ -134,13 +140,13 @@ router.post('/comment', (ctx, next) => {
     const comment = {
         id: lastId + 1,
         postId: post.id,
-        author: body.author || '我是谁?',
+        userId: body.userId || defaulAuthor.id,
         updatedAt: new Date().getTime(),
         content: body.content
     }
     console.log(`新增的comment为：${JSON.stringify(comment)}`);
     comments.push(comment);
-    ctx.response.body = {code: 0, result: comments};
+    ctx.response.body = {code: 0, result: findCommentsById(post.id, comments)};
     next();
 })
 
@@ -155,12 +161,38 @@ app.use(koaBody()).use(common).use(router.routes()).use(router.allowedMethods);
 
 app.listen(4000);
 
+function getAllPosts(posts) {
+    return posts.map((post) => {
+        const user = findAuthorById(post.userId);
+        return {
+            id: post.id,
+            title: post.title,
+            vote: post.vote,
+            updatedAt: post.updatedAt,
+            author: {id:user.id, name:user.name}
+        }
+    })
+}
 function findPostById(postId, posts) {
     const filterResults = posts.filter(item => item.id === Number(postId));
     if (filterResults.length > 0) {
-        return filterResults[0];
+        const post = filterResults[0];
+        const user = findAuthorById(post.userId);
+        post.author = {id:user.id, name:user.name}
+        return post;
     }
 }
 function findCommentsById(postId, comments) {
-    return comments.filter(item => item.postId === Number(postId));
+    const filterResults =  comments.filter(item => item.postId === Number(postId));
+    return filterResults.map(comment => {
+        const user = findAuthorById(comment.userId);
+        comment.author = {id:user.id, name:user.name}
+        return comment;
+    })
+}
+function findAuthorById(userId) {
+    const resultArr =  users.filter(item => item.id === Number(userId));
+    if (resultArr.length > 0) {
+        return resultArr[0];
+    }
 }
