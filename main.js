@@ -4,6 +4,7 @@ const Router = require('koa-router');
 const {users} = require('./db/users');
 let {posts} = require('./db/posts');
 let {comments} = require('./db/comments');
+const {guid} = require('./utils/guid');
 
 const app = new Koa();
 const router = new Router();
@@ -65,10 +66,9 @@ router.get('/post/:postId', (ctx, next) => {
 })
 // 新增帖子
 router.post('/post', (ctx, next) => {
-    const lastId = posts[posts.length - 1].id;
     const body = ctx.request.body;
     const post = {
-        id: lastId + 1,
+        id: guid(),
         userId: body.userId || defaulAuthor.id,
         title: body.title || '我是title',
         vote: 0,
@@ -104,7 +104,7 @@ router.del('/post/:postId', (ctx, next) => {
     const postId = ctx.params.postId;
     const post = findPostById(postId, posts);
     if (post) {
-        posts = posts.filter(item => item.id !== Number(postId));
+        posts = posts.filter(item => item.id !== postId);
         console.log(`删除的post为：${JSON.stringify(post)}`);
         console.log(`剩下的post为${JSON.stringify(posts)}`);
         ctx.response.body = {code: 0, result: post};
@@ -128,7 +128,6 @@ router.get('/comment/:postId', (ctx, next) => {
 })
 // 新增评论
 router.post('/comment', (ctx, next) => {
-    const lastId = comments[comments.length - 1].id;
     const body = ctx.request.body;
     const post = findPostById(body.postId, posts);
     if (!post) {
@@ -138,7 +137,7 @@ router.post('/comment', (ctx, next) => {
         return;
     }
     const comment = {
-        id: lastId + 1,
+        id: guid(),
         postId: post.id,
         userId: body.userId || defaulAuthor.id,
         updatedAt: new Date().getTime(),
@@ -174,7 +173,7 @@ function getAllPosts(posts) {
     })
 }
 function findPostById(postId, posts) {
-    const filterResults = posts.filter(item => item.id === Number(postId));
+    const filterResults = posts.filter(item => item.id === postId);
     if (filterResults.length > 0) {
         const post = filterResults[0];
         const user = findAuthorById(post.userId);
@@ -183,7 +182,7 @@ function findPostById(postId, posts) {
     }
 }
 function findCommentsById(postId, comments) {
-    const filterResults =  comments.filter(item => item.postId === Number(postId));
+    const filterResults =  comments.filter(item => item.postId === postId);
     return filterResults.map(comment => {
         const user = findAuthorById(comment.userId);
         comment.author = {id:user.id, name:user.name}
@@ -191,7 +190,7 @@ function findCommentsById(postId, comments) {
     })
 }
 function findAuthorById(userId) {
-    const resultArr =  users.filter(item => item.id === Number(userId));
+    const resultArr =  users.filter(item => item.id === userId);
     if (resultArr.length > 0) {
         return resultArr[0];
     }
